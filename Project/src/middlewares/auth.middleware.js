@@ -26,7 +26,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
-            throw new ApiError(402, "No Access Token! Please Login first");
+        return next(new ApiError(404, "No Access Token! Please Login first"));
     }
 });
 

@@ -209,7 +209,6 @@ const getAllPlaylists = asyncHandler(async (req, res) => {
         .sort({ [sortBy]: sortOrder })
         .skip((page - 1) * limit) // if we are on page 2 then it will skip ( (2-1) * 10 = first 10 playlist )
         .limit(parseInt(limit))
-        .select("name ownerChannelName createdAt")
 
     if (!playlists.length) return res.status(200).json(new ApiResponse(404, {}, "This user has no playlists"))  // return empty array
 
