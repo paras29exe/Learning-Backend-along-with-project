@@ -214,20 +214,6 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshTheTokens = asyncHandler(async (req, res, next) => {
     // get the refresh token from cookies
-    const savedRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken || false
-
-    if (!savedRefreshToken) {
-        throw new ApiError(404, "Refresh token not found! Please Login.", "Refresh token")
-    }
-
-    // token is sent to user in encoded form so decode it first by comparing to get the user Id
-    const decodedToken = jwt.verify(savedRefreshToken, process.env.REFRESH_TOKEN_SECRET)
-
-    const loggedUser = await User.findById(decodedToken._id).select("-password -watchHistory")
-
-    if (savedRefreshToken !== loggedUser.refreshToken) {
-        throw new ApiError(401, "Access token is expired")
-    }
 
     const options = {
         httpOnly: true,
@@ -235,12 +221,12 @@ const refreshTheTokens = asyncHandler(async (req, res, next) => {
         sameSite: 'lax'
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(loggedUser._id)
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(req.user._id)
 
     return res.status(200)
         .cookie("accessToken", accessToken, { ...options, maxAge: parseInt(process.env.ACCESS_TOKEN_EXPIRY) * 24 * 60 * 60 * 1000 })
         .cookie("refreshToken", refreshToken, { ...options, maxAge: parseInt(process.env.REFRESH_TOKEN_EXPIRY) * 24 * 60 * 60 * 1000 })
-        .json(new ApiResponse(200, loggedUser, "Access token refreshed successfully"))
+        .json(new ApiResponse(200, req.user, "Access token refreshed successfully"))
 })
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {

@@ -37,7 +37,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
     // save the video file and thumbnail file in temp folder then upload to cloudinary
     // save the details in the database as a Video model instance
     // return the response with the video data
-    const { title, description, publishStatus } = req.body && req.body;
+    const { title, description, publishStatus, playlistId } = req.body && req.body;
     const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path
     const videoLocalPath = req.files?.videoFile?.[0]?.path
 
@@ -86,6 +86,18 @@ const uploadVideo = asyncHandler(async (req, res) => {
 
         const uploadedVideo = await Video.findById(video?._id)
 
+        if (uploadedVideo && playlistId) {
+            const playlist = await User.findOneAndUpdate(
+                { _id: playlistId, "ownerId": req.user._id },
+                { $push: { "$videos": video._id } },
+                { new: true }
+            );
+
+            if (!playlist) {
+                throw new ApiError(404, "Playlist not found or you are not authorized to add videos to this playlist");
+            }
+        }
+
         return res.status(200)
             .json(new ApiResponse(200, uploadedVideo, "Video uploaded successfully!"))
 
@@ -99,7 +111,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
                 .json(new ApiResponse(400, null, "File size exceeds the allowed limit of 50MB."));
         }
         console.log(error);
-        
+
 
         // Handle other errors
         next(error); // Pass the error to the global error handler
@@ -660,7 +672,7 @@ const playVideo = asyncHandler(async (req, res) => {
         if (!isVideoOwner) {
             // Increment views
             await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } }, { new: true });
-        
+
             // Add videoId to watch history at the beginning
             await User.findByIdAndUpdate(
                 req.user?._id,
@@ -668,7 +680,7 @@ const playVideo = asyncHandler(async (req, res) => {
                     $pull: { watchHistory: videoId } // Remove if already exists
                 }
             );
-            
+
             await User.findByIdAndUpdate(
                 req.user?._id,
                 {
@@ -676,9 +688,9 @@ const playVideo = asyncHandler(async (req, res) => {
                 },
                 { new: true }
             );
-            
+
         }
-        
+
 
         return res.status(200)
             .json(new ApiResponse(200, videoPage[0], "Video Page Data has been fetched"))

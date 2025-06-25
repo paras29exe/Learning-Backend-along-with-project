@@ -25,6 +25,31 @@ async function findOwnerOfPlaylist(req) {
     return { playlist, playlistOwner }
 }
 
+const createEmptyPlaylist = asyncHandler(async (req, res) => {
+
+    const { name, description } = req.body;
+
+    if (!name || !description) throw new ApiError(400, "Please enter a name and description for this playlist")
+
+    const existingPlaylist = await Playlist.findOne({ name: name })
+
+    if (existingPlaylist) throw new ApiError(409, "Playlist with same name already exists", "name")
+
+    const playlist = await Playlist.create({
+        name,
+        description,
+        ownerId: req.user._id,
+        ownerChannelName: req.user.fullName,
+        coverImage: "",  // initially no cover image
+        videos: []  // initially no videos
+    })
+
+    if (!playlist) throw new ApiError(500, "Couldn't create playlist right now")
+
+    return res.status(200)
+        .json(new ApiResponse(200, playlist, "Playlist created successfully"))
+})
+
 const createPlaylistAndAddVideos = asyncHandler(async (req, res) => {
     // verify the user with verifyJWT middleware
     // take details from form data such as playlist name, description
@@ -69,13 +94,14 @@ const addVideosToSelectedPlaylist = asyncHandler(async (req, res) => {
 
     // if (playlistOwner !== req.user?._id.toString()) throw new ApiError(403, "Unauthorized to add videos to this playlist")
 
-    const { playlistIds, videoIds } = req.body;
+    let { playlistIds, videoIds } = req.body;
+    videoIds = [...videoIds].flat(); // ensure videoIds is always an array
+    playlistIds = [...playlistIds].flat(); // ensure playlistIds is always an array
 
     // verify if all video ids provided are in array format valid objectIds
     if (!Array.isArray(videoIds) || !videoIds.every(mongoose.Types.ObjectId.isValid)) {
         throw new ApiError(404, "Video IDs must be in array format and all valid objectIds")
     }
-
 
     const updatedPlaylist = await Playlist.updateMany(
         { _id: { $in: playlistIds } },
@@ -200,15 +226,17 @@ const getAllPlaylists = asyncHandler(async (req, res) => {
     // get username and other sorting and pagination queries for displaying playlists
     // find all playlists of the user
     // return the response with the playlists data
-    const { page = 1, limit = 20, sortBy = "-createdAt", order = "desc" } = req.query;
+    const { page = 1, limit = 30, sortBy = "createdAt", order = "desc" } = req.query;
     const { userId } = req.params;
 
     const sortOrder = (order === "desc" ? -1 : 1)
 
     const playlists = await Playlist.find({ ownerId: userId })
         .sort({ [sortBy]: sortOrder })
-        .skip((page - 1) * limit) // if we are on page 2 then it will skip ( (2-1) * 10 = first 10 playlist )
+        .skip((page - 1) * limit) // if we are on page 2 then it will skip ( (2-1) * 30 = first 30 playlist )
         .limit(parseInt(limit))
+
+        console.log(playlists?.[0])
 
     if (!playlists.length) return res.status(200).json(new ApiResponse(404, {}, "This user has no playlists"))  // return empty array
 
@@ -219,6 +247,7 @@ const getAllPlaylists = asyncHandler(async (req, res) => {
 })
 
 export {
+    createEmptyPlaylist,
     createPlaylistAndAddVideos,
     addVideosToSelectedPlaylist,
     removeVideosFromPlaylist,

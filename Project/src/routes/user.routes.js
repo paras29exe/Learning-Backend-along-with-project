@@ -25,7 +25,7 @@ userRouter.route("/login-with-google").post(loginWithGoogle);
 
 userRouter.route("/logout").post(verifyJWT, logoutUser);
 
-userRouter.route("/refresh-the-tokens").post(refreshTheTokens);
+userRouter.route("/refresh-the-tokens").post(verifyJWT, refreshTheTokens);
 
 userRouter.route("/change-password").patch(verifyJWT, changeCurrentPassword);
 
