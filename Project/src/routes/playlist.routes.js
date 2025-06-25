@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js"
-import { createPlaylistAndAddVideos, addVideosToSelectedPlaylist, removeVideosFromPlaylist, updatePlaylistDetails, getPlaylistById, getAllPlaylists, createEmptyPlaylist,  } from "../controllers/playlist.controller.js"
+import { createPlaylistAndAddVideos, addVideosToSelectedPlaylist, removeVideosFromPlaylist, updatePlaylistDetails, getPlaylistById, getAllPlaylists, createEmptyPlaylist, getLoggedInUserPlaylists  } from "../controllers/playlist.controller.js"
 
 const playlistRouter = Router();
 
@@ -17,5 +17,7 @@ playlistRouter.route("/update-playlist-details/:playlistId").patch(verifyJWT, up
 playlistRouter.route("/get-playlist/:playlistId").get(getPlaylistById);
 
 playlistRouter.route("/get-all-playlists/:userId").get(getAllPlaylists);
+
+playlistRouter.route("/get-logged-in-user-playlists").get(verifyJWT, getLoggedInUserPlaylists);
 
 export default playlistRouter

@@ -23,6 +23,10 @@ const playlistSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
+    ownerUsername: {
+        type: String,
+        ref: "User"
+    },
     ownerChannelName: {
         type: String,
         ref: "User"

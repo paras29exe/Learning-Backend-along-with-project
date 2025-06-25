@@ -40,6 +40,7 @@ const createEmptyPlaylist = asyncHandler(async (req, res) => {
         description,
         ownerId: req.user._id,
         ownerChannelName: req.user.fullName,
+        ownerUsername: req.user.username,
         coverImage: "",  // initially no cover image
         videos: []  // initially no videos
     })
@@ -73,6 +74,7 @@ const createPlaylistAndAddVideos = asyncHandler(async (req, res) => {
         description,
         ownerId: req.user._id,
         ownerChannelName: req.user.fullName,
+        ownerUsername: req.user.username,
         coverImage: coverImage,
         videos: [...videoIds]
     })
@@ -222,6 +224,19 @@ const deletePlaylistById = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, deletePlaylist, "Playlist deleted successfully"))
 })
 
+const getLoggedInUserPlaylists = asyncHandler(async (req, res) => {
+    // get the logged in user id from req.user
+    const userId = req.user._id;
+    // find all playlists of the user
+    const playlists = await Playlist.find({ ownerId: userId })
+        .sort({ createdAt: -1 }) // sort by createdAt in descending order
+
+    if (!playlists.length) return res.status(200).json(new ApiResponse(404, {}, "You have no playlists yet"))  // return empty array
+    // return the response with the playlists data
+    return res.status(200)
+        .json(new ApiResponse(200, playlists, "Playlists fetched successfully"))
+})
+
 const getAllPlaylists = asyncHandler(async (req, res) => {
     // get username and other sorting and pagination queries for displaying playlists
     // find all playlists of the user
@@ -231,14 +246,14 @@ const getAllPlaylists = asyncHandler(async (req, res) => {
 
     const sortOrder = (order === "desc" ? -1 : 1)
 
-    const playlists = await Playlist.find({ ownerId: userId })
+    // if userId is not a valid ObjectId, we can assume it's a username
+    const isUserIdObjectId = mongoose.Types.ObjectId.isValid(userId);
+    const filter = isUserIdObjectId ? { ownerId: userId } : { ownerUsername: userId };
+
+    const playlists = await Playlist.find(filter)
         .sort({ [sortBy]: sortOrder })
         .skip((page - 1) * limit) // if we are on page 2 then it will skip ( (2-1) * 30 = first 30 playlist )
         .limit(parseInt(limit))
-
-        console.log(playlists?.[0])
-
-    if (!playlists.length) return res.status(200).json(new ApiResponse(404, {}, "This user has no playlists"))  // return empty array
 
     // const totalPlaylists = await Playlist.countDocuments({ ownerUsername: username })
 
@@ -254,5 +269,6 @@ export {
     updatePlaylistDetails,
     getPlaylistById,
     deletePlaylistById,
+    getLoggedInUserPlaylists,
     getAllPlaylists,
 }

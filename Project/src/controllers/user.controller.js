@@ -156,6 +156,8 @@ const loginWithGoogle = asyncHandler(async (req, res, next) => {
 
         const { email, sub, name, picture } = response.data
 
+        // const picture = `https://ui-avatars.com/api/?name=${name}&length=1&background=0D8ABC&color=ffffff&bold=true`
+
         let user = await User.findOne({ email }).select("-password -watchHistory -refreshToken")
 
         if (!user) {
@@ -177,6 +179,8 @@ const loginWithGoogle = asyncHandler(async (req, res, next) => {
             secure: true,
             sameSite: 'lax'
         }
+
+        
 
         return res.status(200)
             .cookie("accessToken", accessToken, { ...options, maxAge: parseInt(process.env.ACCESS_TOKEN_EXPIRY) * 24 * 60 * 60 * 1000 })
