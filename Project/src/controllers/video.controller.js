@@ -57,6 +57,8 @@ const uploadVideo = asyncHandler(async (req, res) => {
 
         const thumbnail = await fileUploadOnCloudinary(thumbnailLocalPath)
         const videoFile = await fileUploadOnCloudinary(videoLocalPath)
+        thumbnail.url = thumbnail.url.replace('http://', 'https://') // Ensure the thumbnail URL is secure
+        videoFile.url = videoFile.url.replace('http://', 'https://') // Ensure the video URL is secure
 
         if (!thumbnail || !videoFile) {
             throw new ApiError(400, "Video Error :: File upload Failed", "videoFile")
@@ -148,6 +150,7 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
         if (!thumbnail) {
             throw new ApiError(400, "Thumbnail update Error :: File upload Failed")
         }
+        thumbnail.url = thumbnail.url.replace('http://', 'https://') // Ensure the thumbnail URL is secure
     }
 
 
@@ -157,7 +160,7 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
                 title: title || video.title,
                 description: description || video.description,
                 publishStatus: publishStatus || video.publishStatus,
-                thumbnail: thumbnail || video.thumbnail
+                thumbnail: thumbnail.url || video.thumbnail
             }
         },
         { new: true }

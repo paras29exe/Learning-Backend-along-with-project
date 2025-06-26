@@ -11,6 +11,12 @@ import { OAuth2Client } from "google-auth-library"
 import isLoggedIn from "../utils/isLoggedIn.js"
 import axios from "axios"
 
+const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none'
+}
+
 const generateAccessAndRefreshToken = async (userId) => {
     // try catch 
     try {
@@ -60,13 +66,13 @@ const registerUser = asyncHandler(async (req, res, next) => {
         if (!coverImageLocalPath) console.log("coverImageLocalPath : Alert! You didn't provided a coverImage")
 
         let avatar = await fileUploadOnCloudinary(avatarLocalPath)
-        avatar = avatar.url
+        avatar.url = avatar.url.replace('http://', 'https://') // Ensure the avatar URL is secure
 
         // as coverImage is not required necessary so we are handling it if it is given
         let coverImage;
         if (coverImageLocalPath) {
             coverImage = await fileUploadOnCloudinary(coverImageLocalPath)
-            coverImage = coverImage.url
+            coverImage.url = coverImage.url.replace('http://', 'https://') // Ensure the cover image URL is secure
         }
 
         /* it will create a new document in "users" named collection and if collection doesn't exists,
@@ -77,8 +83,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
             email,
             username: username.toLowerCase(),
             password: String(password),
-            avatar,
-            coverImage: coverImage || ""
+            avatar: avatar.url,
+            coverImage: coverImage.url || ""
         })
 
         const createdUser = await User.findById(user._id)
@@ -133,12 +139,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken -watchHistory")
 
     // we need options when we send cookies to the server so that they can be modified only by server not by user
-    const options = {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax'
-    }
-
+   
     return res.status(200)
         .cookie("accessToken", accessToken, { ...options, maxAge: parseInt(process.env.ACCESS_TOKEN_EXPIRY) * 24 * 60 * 60 * 1000 })
         .cookie("refreshToken", refreshToken, { ...options, maxAge: parseInt(process.env.REFRESH_TOKEN_EXPIRY) * 24 * 60 * 60 * 1000 })
@@ -174,13 +175,7 @@ const loginWithGoogle = asyncHandler(async (req, res, next) => {
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken -watchHistory")
 
         const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
-        const options = {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'lax'
-        }
 
-        
 
         return res.status(200)
             .cookie("accessToken", accessToken, { ...options, maxAge: parseInt(process.env.ACCESS_TOKEN_EXPIRY) * 24 * 60 * 60 * 1000 })
@@ -205,11 +200,6 @@ const logoutUser = asyncHandler(async (req, res) => {
         }
     )
 
-    const options = {
-        httpOnly: true,
-        secure: true,
-    }
-
     return res.status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
@@ -218,12 +208,6 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshTheTokens = asyncHandler(async (req, res, next) => {
     // get the refresh token from cookies
-
-    const options = {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax'
-    }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(req.user._id)
 
@@ -300,7 +284,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
             const avatarLocalPath = avatar[0]?.path
 
             avatarLink = await fileUploadOnCloudinary(avatarLocalPath)
-            avatarLink = avatarLink.url
+            avatarLink = avatarLink.url.replace('http://', 'https://') // Ensure the avatar URL is secure
 
             if (!avatarLink) {
                 throw new ApiError(500, "Failed to upload avatar on Cloudinary")
@@ -322,7 +306,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
             const coverImageLocalPath = coverImage[0]?.path
 
             coverImageLink = await fileUploadOnCloudinary(coverImageLocalPath)
-            coverImageLink = coverImageLink.url
+            coverImageLink = coverImageLink.url.replace('http://', 'https://') // Ensure the cover image URL is secure
 
             if (!coverImageLink) {
                 throw new ApiError(500, "Failed to upload cover image on Cloudinary")
@@ -332,7 +316,6 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
                 await deleteFileFromCloudinary(req.user.coverImage)
             }
         }
-
 
         const userAccount = await User.findByIdAndUpdate(req.user._id,
             {

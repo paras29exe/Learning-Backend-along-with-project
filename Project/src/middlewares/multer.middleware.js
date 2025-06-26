@@ -1,13 +1,13 @@
 import multer from "multer";
+import os from 'os'
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "./public/temp");
+        cb(null, os.tmpdir());
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
+        cb(null, Date.now() + "-" + Math.round(Math.random() * 1e9) + file.originalname);
     },
-
 });
 
 export const upload = multer({
