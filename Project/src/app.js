@@ -22,6 +22,11 @@ app.use(express.urlencoded({extended: true, limit: "20kb"}))
 app.use(express.static("public"))
 app.use(cookieParser())
 
+// Health check route
+app.get('/ping', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // routes imported 
 import userRouter from "./routes/user.routes.js";
 import videoRouter from "./routes/video.routes.js";
